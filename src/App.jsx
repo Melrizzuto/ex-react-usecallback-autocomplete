@@ -1,24 +1,46 @@
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+// fn di debounce
+const debounce = (callback, delay) => {
+  let timeout;
+  return (value) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      callback(value);
+    }, delay);
+  };
+};
 
 function App() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
 
-  useEffect(() => {
-    if (query.trim().length < 3) {
+  // fn per recuperare i prodotti
+  const fetchProduct = async (query) => {
+    if (!query.trim()) {
       setSuggestions([]);
       return;
     }
+    try {
+      const res = await fetch(`https://boolean-spec-frontend.vercel.app/freetestapi/products?search=${query}`)
+      const data = await res.json()
+      setSuggestions(data)
+      console.log("API")
 
-    axios
-      .get(`https://boolean-spec-frontend.vercel.app/freetestapi/products?search=${query}`)
-      .then(res => setSuggestions(res.data))
-      .catch((error) => {
-        console.error("Errore nel recuperare i dati", error);
-        setSuggestions([]);
-      });
-  }, [query]);
+    } catch (error) {
+      console.error("Errore nel recuperare i dati", error);
+    };
+  };
+
+  // useCallback con debounce
+  const debounceFetchProduct = useCallback(
+    debounce(fetchProduct, 500),
+    []
+  );
+
+  useEffect(() => {
+    debounceFetchProduct(query);
+  }, [query, debounceFetchProduct]);
 
   return (
     <div className="search-container">
